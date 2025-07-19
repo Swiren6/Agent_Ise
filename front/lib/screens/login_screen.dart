@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import '../services/auth_service.dart';
 import '../utils/constants.dart';
 
@@ -23,7 +20,7 @@ class LoginScreen extends StatelessWidget {
                 children: [
                   const SizedBox(height: 50),
                   Image.asset(
-                    "/logo.png",
+                    "assets/logo.png", // Chemin corrigé vers assets
                     height: 200,
                     width: 200,
                     errorBuilder: (context, error, stackTrace) =>
@@ -54,72 +51,21 @@ class _SignForm extends StatefulWidget {
   const _SignForm();
 
   @override
-  __SignFormState createState() => __SignFormState();
+  _SignFormState createState() => _SignFormState();
 }
 
-class __SignFormState extends State<_SignForm> {
+class _SignFormState extends State<_SignForm> {
   final _formKey = GlobalKey<FormState>();
-  final _phoneController = TextEditingController();
+  final _loginController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
   @override
   void dispose() {
-    _phoneController.dispose();
+    _loginController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final url = Uri.parse('http://10.0.2.2:5000/api/login'); // Pour Android
-      // final url = Uri.parse('http://localhost:5000/api/login'); // Pour iOS
-
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({
-          'login_identifier': _phoneController.text.trim(),
-          'password': _passwordController.text.trim(),
-        }),
-      );
-
-      final responseData = jsonDecode(response.body);
-      
-      if (response.statusCode == 200) {
-        final auth = Provider.of<AuthService>(context, listen: false);
-        auth.login(
-          _phoneController.text.trim(),
-          _passwordController.text.trim(),
-          );
-      } else {
-        _showError(responseData['message'] ?? 'Échec de la connexion');
-      }
-    } on http.ClientException catch (e) {
-      _showError('Erreur de connexion au serveur: ${e.message}');
-    } catch (e) {
-      _showError('Erreur inattendue: ${e.toString()}');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   @override
@@ -129,24 +75,21 @@ class __SignFormState extends State<_SignForm> {
       child: Column(
         children: [
           TextFormField(
-            controller: _phoneController,
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(8),
-            ],
+            controller: _loginController,
+            keyboardType: TextInputType.text,
             decoration: InputDecoration(
-              labelText: "Numéro de téléphone",
-              prefixIcon: const Icon(Icons.phone),
+              labelText: "Username, email ou téléphone",
+              hintText: "Entrez votre identifiant",
+              prefixIcon: const Icon(Icons.person),
               border: const OutlineInputBorder(),
             ),
             validator: (value) {
-              if (value?.isEmpty ?? true) return 'Veuillez entrer votre numéro';
-              if (value!.length != 8) return '8 chiffres requis';
+              if (value?.isEmpty ?? true) return 'Veuillez entrer votre identifiant';
               return null;
             },
           ),
           const SizedBox(height: 20),
+          
           TextFormField(
             controller: _passwordController,
             obscureText: !_isPasswordVisible,
@@ -169,6 +112,7 @@ class __SignFormState extends State<_SignForm> {
             },
           ),
           const SizedBox(height: 40),
+          
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -195,5 +139,39 @@ class __SignFormState extends State<_SignForm> {
         ],
       ),
     );
+  }
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final success = await auth.login(
+        _loginController.text.trim(),
+        _passwordController.text.trim(),
+      );
+      
+      if (success) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } else {
+        throw Exception('Identifiants incorrects');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 }

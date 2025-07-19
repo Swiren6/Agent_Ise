@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String _baseUrl = 'http://localhost:5000'; 
+  static const String _baseUrl = 'http://192.168.56.1:5000';
 
   Future<String> askQuestion(String question) async {
     final response = await http.post(
