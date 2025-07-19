@@ -1,21 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../services/auth_service.dart';
+import '../utils/constants.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class LoginScreen extends StatelessWidget {
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: SizedBox(
+          width: double.infinity,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 50),
+                  Image.asset(
+                    "/logo.png",
+                    height: 200,
+                    width: 200,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.school, size: 80, color: Colors.blue),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    "Connectez-vous",
+                    style: GoogleFonts.lato(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: kPrimaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 50),
+                  const _SignForm(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignForm extends StatefulWidget {
+  const _SignForm();
+
+  @override
+  __SignFormState createState() => __SignFormState();
+}
+
+class __SignFormState extends State<_SignForm> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
-  bool _rememberMe = false;
   bool _isLoading = false;
 
   @override
@@ -25,213 +71,129 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _login() async {
+  Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      await Provider.of<AuthService>(
-        context,
-        listen: false,
-      ).login(_phoneController.text.trim(), _passwordController.text.trim());
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur de connexion: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
+      final url = Uri.parse('http://10.0.2.2:5000/api/login'); // Pour Android
+      // final url = Uri.parse('http://localhost:5000/api/login'); // Pour iOS
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'login_identifier': _phoneController.text.trim(),
+          'password': _passwordController.text.trim(),
+        }),
       );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
+
+      final responseData = jsonDecode(response.body);
+      
+      if (response.statusCode == 200) {
+        final auth = Provider.of<AuthService>(context, listen: false);
+        auth.login(
+          _phoneController.text.trim(),
+          _passwordController.text.trim(),
+          );
+      } else {
+        _showError(responseData['message'] ?? 'Échec de la connexion');
       }
+    } on http.ClientException catch (e) {
+      _showError('Erreur de connexion au serveur: ${e.message}');
+    } catch (e) {
+      _showError('Erreur inattendue: ${e.toString()}');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Form(
-        key: _formKey,
-        child: Center(
-          child: Card(
-            elevation: 8,
-            child: Container(
-              padding: const EdgeInsets.all(32.0),
-              constraints: const BoxConstraints(maxWidth: 350),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Logo avec fallback
-                    Image.asset(
-                      'logo.png',
-                      height: 100,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.school,
-                        size: 80,
-                        color: Colors.blue,
-                      ),
-                    ),
-                    _gap(),
-
-                    // // Titre
-                    // Padding(
-                    //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    //   child: Text(
-                    //     'Nom de l\'École',
-                    //     style: Theme.of(context).textTheme.titleMedium
-                    //         ?.copyWith(
-                    //           fontWeight: FontWeight.bold,
-                    //           color: Colors.blue[800],
-                    //         ),
-                    //   ),
-                    // ),
-
-                    // // Sous-titre
-                    // Padding(
-                    //   padding: const EdgeInsets.only(top: 8.0),
-                    //   child: Text(
-                    //     'Connectez-vous avec vos identifiants',
-                    //     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    //       color: Colors.grey[600],
-                    //     ),
-                    //     textAlign: TextAlign.center,
-                    //   ),
-                    // ),
-                    // _gap(),
-
-                    // Champ téléphone
-                    TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(8),
-                      ],
-                      decoration: const InputDecoration(
-                        labelText: 'Numéro de téléphone',
-                        hintText: 'Ex: 77123456',
-                        prefixIcon: Icon(Icons.phone_android),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Veuillez entrer votre numéro';
-                        }
-                        if (value.length != 8) {
-                          return 'Le numéro doit contenir 8 chiffres';
-                        }
-                        return null;
-                      },
-                    ),
-                    _gap(),
-
-                    // Champ mot de passe
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: !_isPasswordVisible,
-                      decoration: InputDecoration(
-                        labelText: 'Mot de passe',
-                        prefixIcon: const Icon(Icons.lock),
-                        border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _isPasswordVisible
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
-                          onPressed: () {
-                            setState(
-                              () => _isPasswordVisible = !_isPasswordVisible,
-                            );
-                          },
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Veuillez entrer votre mot de passe';
-                        }
-                        if (value.length < 6) {
-                          return 'Minimum 6 caractères';
-                        }
-                        return null;
-                      },
-                    ),
-                    _gap(),
-
-                    // Case à cocher "Se souvenir"
-                    CheckboxListTile(
-                      value: _rememberMe,
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setState(() => _rememberMe = value);
-                      },
-                      title: const Text('Se souvenir de moi'),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      secondary: TextButton(
-                        onPressed: () {
-                          // Navigation vers récupération mot de passe
-                        },
-                        child: const Text('Mot de passe oublié ?'),
-                      ),
-                    ),
-                    _gap(),
-
-                    // Bouton de connexion
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          padding: const EdgeInsets.all(10),
-                        ),
-                        onPressed: _isLoading ? null : _login,
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : const Text(
-                                'CONNEXION',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                      ),
-                    ),
-                    _gap(),
-
-                    // Lien vers inscription
-                    // Row(
-                    //   mainAxisAlignment: MainAxisAlignment.center,
-                    //   children: [
-                    //     const Text('Nouvel utilisateur ?'),
-                    //     TextButton(
-                    //       onPressed: () {
-                    //         // Navigation vers inscription
-                    //       },
-                    //       child: const Text('Créer un compte'),
-                    //     ),
-                    //   ],
-                    // ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
 
-  Widget _gap() => const SizedBox(height: 45);
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          TextFormField(
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(8),
+            ],
+            decoration: InputDecoration(
+              labelText: "Numéro de téléphone",
+              prefixIcon: const Icon(Icons.phone),
+              border: const OutlineInputBorder(),
+            ),
+            validator: (value) {
+              if (value?.isEmpty ?? true) return 'Veuillez entrer votre numéro';
+              if (value!.length != 8) return '8 chiffres requis';
+              return null;
+            },
+          ),
+          const SizedBox(height: 20),
+          TextFormField(
+            controller: _passwordController,
+            obscureText: !_isPasswordVisible,
+            decoration: InputDecoration(
+              labelText: "Mot de passe",
+              prefixIcon: const Icon(Icons.lock),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                  color: Colors.grey,
+                ),
+                onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+              ),
+              border: const OutlineInputBorder(),
+            ),
+            validator: (value) {
+              if (value?.isEmpty ?? true) return 'Veuillez entrer votre mot de passe';
+              if (value!.length < 6) return '6 caractères minimum';
+              return null;
+            },
+          ),
+          const SizedBox(height: 40),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: kPrimaryColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: _isLoading ? null : _submitForm,
+              child: _isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : Text(
+                      'CONNEXION',
+                      style: GoogleFonts.lato(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -5,8 +5,7 @@ class MessageBubble extends StatelessWidget {
   final Message message;
   final bool isMe;
 
-  const MessageBubble({Key? key, required this.message, required this.isMe})
-    : super(key: key);
+  const MessageBubble({super.key, required this.message, required this.isMe});
 
   @override
   Widget build(BuildContext context) {
@@ -56,3 +55,53 @@ class MessageBubble extends StatelessWidget {
     );
   }
 }
+
+
+// class MessageBubble extends StatelessWidget {
+//   final Message message;
+//   final bool isMe;
+
+//   const MessageBubble({
+//     super.key,
+//     required this.message,
+//     required this.isMe,
+//   });
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Align(
+//       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+//       child: Container(
+//         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+//         padding: const EdgeInsets.all(12),
+//         decoration: BoxDecoration(
+//           color: isMe ? Colors.blue[100] : Colors.grey[200],
+//           borderRadius: BorderRadius.circular(12),
+//         ),
+//         child: message.isTyping
+//             ? const TypingIndicator()
+//             : Text(message.text),
+//       ),
+//     );
+//   }
+// }
+
+// class TypingIndicator extends StatelessWidget {
+//   const TypingIndicator({super.key});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return const Row(
+//       mainAxisSize: MainAxisSize.min,
+//       children: [
+//         Text('Assistant tape...'),
+//         SizedBox(width: 8),
+//         SizedBox(
+//           width: 20,
+//           height: 20,
+//           child: CircularProgressIndicator(strokeWidth: 2),
+//         ),
+//       ],
+//     );
+//   }
+// }
