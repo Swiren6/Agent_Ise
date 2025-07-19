@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
+import 'screens/login_screen.dart';
+import 'screens/chat_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => AuthService(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -18,13 +22,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'School AI Assistant',
+      title: 'Mon Application',
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const LoginScreen(),
+      home: Consumer<AuthService>(
+        builder: (context, auth, child) {
+          // Charge l'état d'authentification au démarrage
+          auth.autoLogin();
+          return auth.isAuthenticated ? const ChatScreen() : const LoginScreen();
+        },
+      ),
     );
   }
 }

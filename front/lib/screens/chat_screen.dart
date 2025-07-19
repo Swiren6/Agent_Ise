@@ -143,3 +143,122 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 }
+
+
+// import 'dart:convert';
+// import 'package:flutter/material.dart';
+// import '../models/message_models.dart';
+// import '../services/api_service.dart'; // Vous allez créer ce service
+
+// class ChatScreen extends StatefulWidget {
+//   const ChatScreen({super.key});
+
+//   @override
+//   State<ChatScreen> createState() => _ChatScreenState();
+// }
+
+// class _ChatScreenState extends State<ChatScreen> {
+//   final TextEditingController _messageController = TextEditingController();
+//   final List<Message> _messages = [
+//     Message(
+//       text: 'Bonjour! Comment puis-je vous aider aujourd\'hui?', 
+//       isMe: false,
+//       isTyping: false,
+//     ),
+//   ];
+//   bool _isLoading = false;
+
+//   Future<void> _sendMessage() async {
+//     if (_messageController.text.trim().isEmpty) return;
+
+//     setState(() {
+//       _messages.add(Message(
+//         text: _messageController.text,
+//         isMe: true,
+//         isTyping: false,
+//       ));
+//       _messages.add(Message(
+//         text: '',
+//         isMe: false,
+//         isTyping: true,
+//       ));
+//       _isLoading = true;
+//       _messageController.clear();
+//     });
+
+//     try {
+//       final response = await ApiService().askQuestion(_messages[_messages.length-2].text);
+      
+//       setState(() {
+//         _messages.removeLast();
+//         _messages.add(Message(
+//           text: response,
+//           isMe: false,
+//           isTyping: false,
+//         ));
+//         _isLoading = false;
+//       });
+//     } catch (e) {
+//       setState(() {
+//         _messages.removeLast();
+//         _messages.add(Message(
+//           text: 'Désolé, une erreur est survenue: ${e.toString()}',
+//           isMe: false,
+//           isTyping: false,
+//         ));
+//         _isLoading = false;
+//       });
+//     }
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: Column(
+//         children: [
+//           Expanded(
+//             child: ListView.builder(
+//               padding: const EdgeInsets.all(16),
+//               itemCount: _messages.length,
+//               itemBuilder: (context, index) {
+//                 final message = _messages[index];
+//                 return MessageBubble(
+//                   message: message,
+//                   isMe: message.isMe,
+//                 );
+//               },
+//             ),
+//           ),
+//           if (_isLoading) const LinearProgressIndicator(),
+//           _buildMessageInput(),
+//         ],
+//       ),
+//     );
+//   }
+
+//   Widget _buildMessageInput() {
+//     return Container(
+//       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+//       child: Row(
+//         children: [
+//           Expanded(
+//             child: TextField(
+//               controller: _messageController,
+//               decoration: InputDecoration(
+//                 hintText: 'Tapez votre question...',
+//                 border: OutlineInputBorder(
+//                   borderRadius: BorderRadius.circular(24),
+//                 ),
+//               ),
+//               onSubmitted: (_) => _sendMessage(),
+//             ),
+//           ),
+//           IconButton(
+//             icon: const Icon(Icons.send),
+//             onPressed: _isLoading ? null : _sendMessage,
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
